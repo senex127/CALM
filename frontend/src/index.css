@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+/* ── Palette — bois chaud et ambre d'un bar à jeux, réglable ensuite depuis
+   Admin → Paramètres (GlobalTheme recolore --accent* à partir de Settings.accentColor,
+   ces valeurs ne sont que le repli avant que ce fetch ne réponde). ── */
+:root {
+  --bg-primary:   #f1f3ef;
+  --bg-secondary: #ffffff;
+  --bg-tertiary:  #e9ece7;
+
+  --border:        #d8ded9;
+  --border-strong: #c2cac4;
+
+  --accent:        #b5651d;
+  --accent-hover:  #96521a;
+  --accent-ink:    #7a4013;
+  --accent-subtle: #f7ead9;
+  --accent-gradient: linear-gradient(135deg, #c17a2e 0%, #8a4e16 100%);
+
+  --text-primary:   #182231;
+  --text-secondary: #4c5a6b;
+  --text-muted:     #8291a0;
+
+  --status-pending:      #8a6d1f;
+  --status-pending-bg:   #f5edd4;
+  --status-confirmed:    #1f7a6c;
+  --status-confirmed-bg: #e4f1ee;
+  --status-refused:      #b3401f;
+  --status-refused-bg:   #f9e6dc;
+  --status-waitlist:     #5c6b7a;
+  --status-waitlist-bg:  #e9ecee;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+
+  --shadow-sm: 0 1px 2px rgba(21, 33, 30, 0.05), 0 1px 1px rgba(21, 33, 30, 0.04);
+  --shadow-md: 0 8px 20px rgba(21, 33, 30, 0.08), 0 2px 6px rgba(21, 33, 30, 0.05);
+  --shadow-lg: 0 20px 44px rgba(21, 33, 30, 0.14), 0 6px 14px rgba(21, 33, 30, 0.06);
+
+  --header-bg: rgba(255, 255, 255, 0.86);
+
+  --font-display: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary:   #121820;
+    --bg-secondary: #1a222c;
+    --bg-tertiary:  #202a36;
+
+    --border:        #2a3540;
+    --border-strong: #384552;
+
+    --accent:        #e0a15c;
+    --accent-hover:  #e8b374;
+    --accent-ink:    #f0c896;
+    --accent-subtle: rgba(224, 161, 92, 0.16);
+    --accent-gradient: linear-gradient(135deg, #6b4419 0%, #40280f 100%);
+
+    --text-primary:   #e8ecea;
+    --text-secondary: #a9b4be;
+    --text-muted:     #6e7a86;
+
+    --status-pending:      #d1ae55;
+    --status-pending-bg:   rgba(209, 174, 85, 0.14);
+    --status-confirmed:    #5cc7b0;
+    --status-confirmed-bg: rgba(92, 199, 176, 0.14);
+    --status-refused:      #e0724c;
+    --status-refused-bg:   rgba(224, 114, 76, 0.14);
+    --status-waitlist:     #93a1ae;
+    --status-waitlist-bg:  rgba(147, 161, 174, 0.14);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(0, 0, 0, 0.24);
+    --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.36), 0 2px 6px rgba(0, 0, 0, 0.24);
+    --shadow-lg: 0 20px 44px rgba(0, 0, 0, 0.46), 0 6px 14px rgba(0, 0, 0, 0.3);
+
+    --header-bg: rgba(26, 34, 44, 0.86);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Montserrat ne sert que pour les grands titres de page — les intitulés de carte
+   (offre, boutique...) restent en Manrope, la casse et la taille varient trop pour un display. */
+h1 { font-family: var(--font-display); text-wrap: balance; }
+h2, h3, h4 { text-wrap: balance; }
+
+/* Supprime le délai de 300ms avant qu'un tap déclenche son action (mobile) */
+a, button, input, select, textarea {
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Cartes ── */
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-interactive {
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out;
+}
+.card-interactive:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
+}
+.card-interactive:active {
+  transform: translateY(-1px) scale(0.99);
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-interactive:hover { transform: none; }
+}
+
+/* ── Squelettes de chargement (shimmer) ── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--border) 37%, var(--bg-tertiary) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}

@@ -1,0 +1,96 @@
+// binaryTargets couvre les distributions courantes des serveurs mutualisés O2Switch
+// (voir Portfy : sans ça, `prisma generate` produit un binaire incompatible en prod)
+generator client {
+  provider      = "prisma-client-js"
+  engineType    = "binary"
+  binaryTargets = ["native", "rhel-openssl-1.1.x", "debian-openssl-1.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String?  // null si le compte n'existe que via Google
+  googleId     String?  @unique
+  name         String
+  role         String   @default("USER") // "USER" | "ADMIN"
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  reservations  Reservation[]
+  notifications Notification[]
+}
+
+// Une seule ligne, toujours id = "main" — pas de multi-boutique ici, ce projet sert un seul
+// établissement. Regroupe les infos qui vivaient sur le modèle Shop dans Reservator (le
+// projet marketplace dont celui-ci est dérivé).
+model Settings {
+  id            String   @id @default("main")
+  name          String   @default("Comme à la Maison")
+  description   String?
+  address       String   @default("")
+  phone         String?
+  openingHours  String?
+  logoUrl       String?
+  coverImageUrl String?
+  accentColor   String?  // hex "#rrggbb" — voir lib/theme.js côté frontend
+  updatedAt     DateTime @updatedAt
+}
+
+model Offer {
+  id                   String    @id @default(uuid())
+  type                 String    // "PRODUCT" | "TOURNAMENT"
+  title                String
+  description          String?
+  imageUrl             String?
+  price                Decimal?  @db.Decimal(10, 2)
+  startAt              DateTime
+  registrationDeadline DateTime?
+  location             String
+  limitPerPerson       Int       @default(1)
+  totalCapacity        Int?
+  requiresValidation   Boolean   @default(false)
+  status               String    @default("DRAFT") // "DRAFT" | "PUBLISHED" | "CLOSED" | "ARCHIVED"
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  reservations Reservation[]
+}
+
+model Reservation {
+  id           String    @id @default(uuid())
+  offerId      String
+  userId       String
+  quantity     Int       @default(1)
+  formAnswers  String?   // JSON stringifié (coordonnées complémentaires, commentaire...)
+  status       String    @default("PENDING") // "PENDING" | "CONFIRMED" | "REFUSED" | "CANCELLED" | "WAITLISTED" | "NO_SHOW"
+  waitlistRank Int?
+  processedAt  DateTime?
+  processedBy  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  offer Offer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([offerId])
+  @@index([userId])
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String
+  content   String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

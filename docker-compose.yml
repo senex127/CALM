@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: calm_postgres
+    environment:
+      POSTGRES_USER: calm
+      POSTGRES_PASSWORD: calm_secret
+      POSTGRES_DB: calm
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: calm_backend
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://calm:calm_secret@postgres:5432/calm
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "3002:3001"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: calm_frontend
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "5174:5174"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

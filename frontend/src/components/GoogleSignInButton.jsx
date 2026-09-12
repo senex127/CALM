@@ -1,0 +1,46 @@
+import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../api/client';
+import { useAuthStore } from '../store/authStore';
+
+// Bouton "Sign in with Google" (Google Identity Services). Le frontend récupère
+// un ID token que le backend vérifie côté serveur (voir lib/googleAuth.js) —
+// aucun secret Google ne transite ni ne réside côté client.
+export default function GoogleSignInButton() {
+  const ref = useRef(null);
+  const setSession = useAuthStore((s) => s.setSession);
+  const navigate = useNavigate();
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  useEffect(() => {
+    if (!clientId) return;
+
+    const handleCredential = async (response) => {
+      try {
+        const { data } = await api.post('/auth/google', { credential: response.credential });
+        setSession(data);
+        navigate('/');
+      } catch {
+        alert('Connexion Google impossible. Réessayez.');
+      }
+    };
+
+    const init = () => {
+      window.google?.accounts.id.initialize({ client_id: clientId, callback: handleCredential });
+      if (ref.current) window.google?.accounts.id.renderButton(ref.current, { theme: 'outline', size: 'large', width: '100%' });
+    };
+
+    if (window.google) {
+      init();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.onload = init;
+      document.body.appendChild(script);
+    }
+  }, [clientId, setSession, navigate]);
+
+  if (!clientId) return null;
+  return <div ref={ref} />;
+}
