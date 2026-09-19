@@ -250,15 +250,26 @@ publiques (disponibilité, contenu d'une offre publiée).
 Le déploiement est géré par un **cron cPanel qui pull toutes les 5 minutes**
 (`scripts/server-deploy.sh`), pas par un webhook déclenché depuis GitHub Actions : le
 port 22 est bloqué depuis les IPs GitHub Actions sur O2Switch, et la protection anti-bot
-(Imunify360) bloque les requêtes entrantes. Le CI (`.github/workflows/deploy.yml`) se
-limite donc à valider le build et l'audit de sécurité.
+(Imunify360) bloque les requêtes entrantes.
+
+Le frontend est **construit par la CI**, pas sur le serveur : sur au moins certains comptes
+O2Switch, `NODE_ENV=production` (actif via l'environnement Node du Setup Node.js App) fait
+sauter les devDependencies à l'installation quel que soit le flag npm utilisé (`--include=dev`,
+`--production=false`) — et `vite` en fait partie, rendant `npm run build` impossible sur le
+serveur lui-même. `.github/workflows/deploy.yml` construit donc le frontend et commit
+`frontend/dist/` sur `main` (avec `[skip ci]` pour ne pas se redéclencher), et
+`server-deploy.sh` se contente de copier ce dossier déjà construit dans `backend/public`.
 
 1. Sur le serveur : cloner le repo dans `~/public_html/comme-a-la-maison`, configurer l'app
    Node.js (cPanel → Setup Node.js App, Node 20, dossier `backend`), copier `.env.example` en
    `.env` et le compléter.
-2. Ajouter le cron : `*/5 * * * * ~/public_html/comme-a-la-maison/scripts/server-deploy.sh`
-3. Chaque push sur `main` est récupéré au cron suivant, qui `git reset --hard`, réinstalle
-   les dépendances si besoin, applique le schéma Prisma, rebuild le frontend si besoin et
+2. Sur GitHub : Settings → Actions → General → Workflow permissions → **Read and write
+   permissions** (nécessaire pour que la CI puisse committer `frontend/dist/` en retour sur
+   `main`).
+3. Ajouter le cron : `*/5 * * * * ~/public_html/comme-a-la-maison/scripts/server-deploy.sh`
+4. Chaque push sur `main` déclenche la CI (build + commit de `frontend/dist/` + audit) ; le
+   cron suivant récupère le tout, `git reset --hard`, réinstalle les dépendances backend si
+   besoin, applique le schéma Prisma, copie `frontend/dist/` dans `backend/public` et
    redémarre l'app (`touch backend/tmp/restart.txt`).
 
 ## Structure

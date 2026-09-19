@@ -6,19 +6,31 @@ name: Deploy to O2Switch
 #   - Bot protection O2Switch (Imunify360) bloque curl/wget entrants
 #
 # Architecture retenue :
-#   CI  →  valide le build + audit sécurité
+#   CI  →  build le frontend et commit frontend/dist/ sur main + audit sécurité
 #   Serveur → cron cPanel toutes les 5 min qui pull et déploie
-#             (voir scripts/server-deploy.sh)
+#             (voir scripts/server-deploy.sh) — copie ce dist déjà construit,
+#             ne lance plus jamais `npm run build` lui-même.
+#
+# Pourquoi construire ici plutôt que sur le serveur : sur ce compte O2Switch,
+# NODE_ENV=production (actif via l'environnement Node du Setup Node.js App) fait sauter les
+# devDependencies à l'install quel que soit le flag npm utilisé (--include=dev, --production=false)
+# — et vite en fait partie. Plutôt que dépendre d'un comportement npm peu fiable sur cet
+# environnement, le frontend est construit une fois ici, dans un environnement standard.
 # ──────────────────────────────────────────────────────────────
 
 on:
   push:
     branches: [main]
 
+permissions:
+  contents: write   # nécessaire pour committer frontend/dist/ en retour sur main
+
 jobs:
   ci:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Sans ça, le commit de dist/ plus bas redéclencherait ce même workflow indéfiniment.
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
     steps:
       - uses: actions/checkout@v4
@@ -40,6 +52,18 @@ jobs:
       - name: Audit sécurité backend
         working-directory: backend
         run: npm audit --audit-level=high
+
+      - name: Committer le build sur main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f frontend/dist
+          if git diff --cached --quiet; then
+            echo "dist/ inchangé — rien à committer."
+          else
+            git commit -m "build: frontend/dist [skip ci]"
+            git push
+          fi
 
       - name: Vérifier que le serveur répond
         run: |

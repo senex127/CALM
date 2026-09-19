@@ -62,11 +62,9 @@ fi
 echo "=== Nouveau commit détecté : $REMOTE (était $CURRENT) ==="
 
 BACKEND_PKG=0
-FRONTEND_CHANGED=0
 git diff --name-only "$CURRENT" "$REMOTE" | grep -q "^backend/package" && BACKEND_PKG=1 || true
-git diff --name-only "$CURRENT" "$REMOTE" | grep -q "^frontend/"       && FRONTEND_CHANGED=1 || true
 
-echo "Backend pkg changé : $BACKEND_PKG | Frontend changé : $FRONTEND_CHANGED"
+echo "Backend pkg changé : $BACKEND_PKG"
 
 # ── Pull ──
 git reset --hard origin/main
@@ -100,22 +98,19 @@ echo "=== prisma generate ==="
 ./node_modules/.bin/prisma generate \
   --schema ./src/prisma/schema.prisma
 
-# ── Build frontend ──
-if [ "$FRONTEND_CHANGED" = "1" ]; then
-  echo "=== Build frontend ==="
-  cd "$FRONTEND"
-  # --include=dev : NODE_ENV=production (actif dans ce shell, via le venv Node source plus
-  # haut) fait sauter les devDependencies par défaut — et vite en fait partie. Contrairement
-  # au backend (où sauter les devDependencies est le comportement voulu, nodemon ne sert qu'en
-  # dev), on construit le frontend directement sur le serveur : vite doit être installé pour
-  # que `npm run build` puisse tourner.
-  npm ci --include=dev --silent
-  npm run build
+# ── Frontend : déjà construit par la CI (frontend/dist commité sur main, voir
+# .github/workflows/deploy.yml) — ce serveur se contente de le copier. Pas de `npm ci`/
+# `npm run build` ici : NODE_ENV=production (actif via le venv Node source plus haut) fait
+# sauter les devDependencies à l'install sur ce compte, quel que soit le flag npm utilisé
+# (--include=dev, --production=false) — et vite en fait partie. Copie systématique, pas
+# conditionnelle : sans build à lancer, c'est une opération rapide et sans effet de bord.
+if [ -d "$FRONTEND/dist" ]; then
+  echo "=== Copie frontend/dist → $PUBLIC ==="
   mkdir -p "$PUBLIC"
   rm -rf "${PUBLIC:?}"/*
-  cp -r dist/. "$PUBLIC/"
-  echo "=== Frontend déployé dans $PUBLIC ==="
-  cd "$BACKEND"
+  cp -r "$FRONTEND/dist/." "$PUBLIC/"
+else
+  echo "AVERTISSEMENT : $FRONTEND/dist introuvable — la CI a-t-elle bien commité le build ?"
 fi
 
 # ── Restart Passenger ──

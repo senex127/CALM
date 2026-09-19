@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# Exception : frontend/dist est commité par la CI (voir .github/workflows/deploy.yml, `git add
+# -f`) — le serveur de prod ne construit pas le frontend lui-même (voir server-deploy.sh).
 .env
 .env.local
 .env.development
