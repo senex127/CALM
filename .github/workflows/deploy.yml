@@ -43,6 +43,15 @@ jobs:
 
       - name: Build frontend
         working-directory: frontend
+        # Les variables VITE_* sont figées dans le bundle au moment du build — le frontend
+        # ne lit plus jamais frontend/.env du serveur (on ne construit plus là-bas, voir
+        # plus haut). Sans ça, le bundle prod garde les valeurs de repli codées en dur
+        # (ex. http://localhost:3002/api), inutilisables pour un vrai visiteur.
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+          VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH }}
         run: npm ci && npm run build
 
       - name: Audit sécurité frontend
