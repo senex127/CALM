@@ -57,6 +57,13 @@ if (isProd) {
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'same-origin' },
+  // Par défaut Helmet met `same-origin`, qui isole complètement le contexte de navigation —
+  // la popup "Sign In With Google" ne peut alors plus communiquer le résultat à la page
+  // d'origine via `window.opener` (l'utilisateur reste bloqué sur une page de transition
+  // Google, ex. accounts.google.com/gsi/transform, la popup ne se referme jamais). Cette
+  // variante garde l'isolation contre les autres origines tout en autorisant explicitement
+  // ce cas précis (popup ouverte par la page elle-même).
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
