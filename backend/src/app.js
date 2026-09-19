@@ -119,7 +119,10 @@ app.use((err, req, res, next) => {
 // par le script de déploiement (voir scripts/server-deploy.sh) puis servi ici.
 if (isProd) {
   app.use(express.static(path.join(__dirname, '../public')));
-  app.get('*', (_, res) => res.sendFile(path.join(__dirname, '../public', 'index.html')));
+  // Express 5 (path-to-regexp v8) a durci la syntaxe des routes joker : `'*'` seul n'est plus
+  // valide, il faut désormais un joker nommé (`/*splat`) — sinon crash immédiat au démarrage,
+  // uniquement visible en prod puisque ce bloc ne s'exécute jamais en dev (isProd).
+  app.get('/*splat', (_, res) => res.sendFile(path.join(__dirname, '../public', 'index.html')));
 }
 
 // Serveur HTTP brut plutôt que app.listen() directement : Socket.IO doit s'attacher au
