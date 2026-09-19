@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Package, Trophy, Plus } from 'lucide-react';
 import api from '../../api/client';
 import StatusBadge from '../../components/StatusBadge';
-import { buttonBaseClass } from '../../components/Button';
+import { buttonBaseClass, primaryButtonStyle } from '../../components/Button';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonList } from '../../components/Skeleton';
 
@@ -21,7 +21,7 @@ export default function AdminOffersPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold">Offres</h2>
-        <Link to="/admin/offres/nouvelle" className={buttonBaseClass} style={{ background: 'var(--accent)', color: '#fff', borderRadius: 'var(--radius-md)' }}>
+        <Link to="/admin/offres/nouvelle" className={buttonBaseClass} style={primaryButtonStyle}>
           <Plus size={16} /> Nouvelle offre
         </Link>
       </div>

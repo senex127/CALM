@@ -3,9 +3,10 @@ import { useParams, Link } from 'react-router-dom';
 import { Minus, Plus, MapPin, Calendar, Users, Package, Trophy, CheckCircle2, Clock, LogIn } from 'lucide-react';
 import api from '../api/client';
 import { useAuthStore } from '../store/authStore';
-import Button from '../components/Button';
+import Button, { buttonBaseClass, primaryButtonStyle } from '../components/Button';
 import TurnstileWidget from '../components/TurnstileWidget';
 import { SkeletonLine } from '../components/Skeleton';
+import { socket } from '../lib/socket';
 
 const TURNSTILE_ENABLED = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY);
 
@@ -27,6 +28,9 @@ export default function OfferPage() {
   const [turnstileToken, setTurnstileToken] = useState('');
   const [outcome, setOutcome] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  // Places restantes / liste d'attente en direct (voir lib/socket.js) — null tant que le
+  // serveur n'a pas encore répondu à l'abonnement, ou si l'offre n'a pas de capacité limitée.
+  const [availability, setAvailability] = useState(null);
 
   const onVerify = useCallback((token) => setTurnstileToken(token), []);
 
@@ -35,6 +39,38 @@ export default function OfferPage() {
       .then(({ data }) => setOffer(data.offer))
       .catch(() => setError('Offre introuvable'));
   }, [id]);
+
+  // Rejoint la « room » de cette offre pour recevoir ses mises à jour de disponibilité en
+  // direct (une réservation de quelqu'un d'autre change le nombre de places restantes sans
+  // que personne n'ait à recharger la page) ; se désabonne au changement d'offre/démontage.
+  useEffect(() => {
+    setAvailability(null);
+    if (!id) return undefined;
+    socket.emit('offer:subscribe', id);
+    const onAvailability = (data) => {
+      if (data.offerId === id) setAvailability(data);
+    };
+    socket.on('offer:availability', onAvailability);
+    return () => {
+      socket.emit('offer:unsubscribe', id);
+      socket.off('offer:availability', onAvailability);
+    };
+  }, [id]);
+
+  // Complet (waitlist) : la quantité reste bornée par la limite par personne — rejoindre la
+  // liste d'attente ne dépend pas des places restantes, qui sont à 0 par définition. Sinon,
+  // bornée par le plus petit des deux (impossible de demander plus qu'il n'en reste).
+  const maxQuantity = !offer ? 1
+    : availability && !availability.full
+      ? Math.max(1, Math.min(offer.limitPerPerson, availability.remaining))
+      : offer.limitPerPerson;
+
+  // Si la disponibilité baisse en direct pendant que ce client a déjà choisi une quantité
+  // plus haute (quelqu'un d'autre vient de réserver), on la ramène automatiquement au max
+  // désormais permis plutôt que de le laisser soumettre une quantité qui n'est plus valide.
+  useEffect(() => {
+    setQuantity((q) => Math.min(q, maxQuantity));
+  }, [maxQuantity]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -91,8 +127,30 @@ export default function OfferPage() {
       )}
       {offer.description && <p className="mt-4 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{offer.description}</p>}
 
-      <div className="flex items-center gap-1.5 mt-4 text-xs px-3 py-1.5 rounded-full w-fit" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-        <Users size={13} /> Limite {offer.limitPerPerson} par personne · retrait sur place uniquement
+      <div className="flex flex-wrap items-center gap-2 mt-4">
+        <span className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+          <Users size={13} /> Limite {offer.limitPerPerson} par personne · retrait sur place uniquement
+        </span>
+
+        {offer.totalCapacity != null && (
+          // aria-live : un client malvoyant doit aussi être informé quand la disponibilité
+          // change en direct, pas seulement voir le badge se redessiner visuellement.
+          <span
+            aria-live="polite"
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full"
+            style={{
+              background: availability?.full ? 'var(--status-pending-bg)' : 'var(--status-confirmed-bg)',
+              color: availability?.full ? 'var(--status-pending)' : 'var(--status-confirmed)',
+            }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'currentColor' }} aria-hidden="true" />
+            {!availability
+              ? `${offer.totalCapacity} places au total`
+              : availability.full
+                ? `Complet${availability.waitlisted ? ` · ${availability.waitlisted} en liste d’attente` : ''}`
+                : `${availability.remaining} place${availability.remaining > 1 ? 's' : ''} restante${availability.remaining > 1 ? 's' : ''} sur ${availability.totalCapacity}`}
+          </span>
+        )}
       </div>
 
       <div className="card mt-6 p-5">
@@ -106,7 +164,7 @@ export default function OfferPage() {
         ) : !user ? (
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p style={{ color: 'var(--text-secondary)' }}>Connectez-vous pour réserver cette offre.</p>
-            <Link to="/connexion" className="inline-flex items-center gap-2 min-h-11 px-4 rounded-lg text-sm font-semibold" style={{ background: 'var(--accent)', color: '#fff' }}>
+            <Link to="/connexion" className={buttonBaseClass} style={primaryButtonStyle}>
               <LogIn size={16} /> Se connecter
             </Link>
           </div>
@@ -126,13 +184,21 @@ export default function OfferPage() {
                 <span className="min-w-8 text-center tabular-nums font-semibold" aria-live="polite">{quantity}</span>
                 <button
                   type="button" aria-label="Augmenter la quantité"
-                  onClick={() => setQuantity((q) => Math.min(offer.limitPerPerson, q + 1))}
-                  disabled={quantity >= offer.limitPerPerson}
+                  onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
+                  disabled={quantity >= maxQuantity}
                   className="min-h-11 min-w-11 flex items-center justify-center active:scale-95 transition-transform disabled:opacity-40"
                 >
                   <Plus size={16} />
                 </button>
               </div>
+              {/* Sous liste d'attente (offre complète), la quantité ne peut être limitée par la
+                  disponibilité en direct — le rang en attente ne dépend pas d'une quantité choisie
+                  ici, elle rejoint simplement la file. */}
+              {availability && !availability.full && availability.remaining < offer.limitPerPerson && (
+                <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                  Seulement {availability.remaining} place{availability.remaining > 1 ? 's' : ''} restante{availability.remaining > 1 ? 's' : ''}.
+                </p>
+              )}
             </div>
             <label className="text-sm font-medium">
               Commentaire (optionnel)
@@ -144,7 +210,7 @@ export default function OfferPage() {
             <TurnstileWidget onVerify={onVerify} />
             {error && <p className="text-sm" role="alert" style={{ color: 'var(--status-refused)' }}>{error}</p>}
             <Button type="submit" loading={submitting} disabled={TURNSTILE_ENABLED && !turnstileToken} className="w-full">
-              {submitting ? 'Envoi…' : 'Réserver'}
+              {submitting ? 'Envoi…' : availability?.full ? 'Rejoindre la liste d’attente' : 'Réserver'}
             </Button>
           </form>
         )}

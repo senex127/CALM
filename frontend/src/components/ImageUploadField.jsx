@@ -62,7 +62,7 @@ export default function ImageUploadField({ label, value, onChange, wide = false 
 
         <input
           ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp"
-          onChange={handleFile} className="hidden"
+          onChange={handleFile} className="hidden" aria-label={label}
         />
       </div>
       {error && <p className="text-xs mt-1.5" role="alert" style={{ color: 'var(--status-refused)' }}>{error}</p>}

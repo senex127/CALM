@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Package } from 'lucide-react';
-import api from '../api/client';
 import EmptyState from '../components/EmptyState';
 import OfferCard from '../components/OfferCard';
 import { SkeletonGrid } from '../components/Skeleton';
+import { useLiveOffers } from '../hooks/useLiveOffers';
 
 const FILTERS = [
   { value: '', label: 'Toutes' },
@@ -13,15 +13,7 @@ const FILTERS = [
 
 export default function OffersPage() {
   const [filter, setFilter] = useState('');
-  const [offers, setOffers] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    api.get('/offers', { params: filter ? { type: filter } : {} })
-      .then(({ data }) => setOffers(data.offers))
-      .finally(() => setLoading(false));
-  }, [filter]);
+  const { offers, loading } = useLiveOffers({ type: filter || undefined });
 
   return (
     <div>

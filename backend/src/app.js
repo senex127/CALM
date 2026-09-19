@@ -24,6 +24,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
+const http = require('http');
+const { initSocket } = require('./lib/socket');
 
 const authRoutes = require('./routes/auth.routes');
 const settingsRoutes = require('./routes/settings.routes');
@@ -120,5 +122,11 @@ if (isProd) {
   app.get('*', (_, res) => res.sendFile(path.join(__dirname, '../public', 'index.html')));
 }
 
+// Serveur HTTP brut plutôt que app.listen() directement : Socket.IO doit s'attacher au
+// serveur HTTP lui-même pour intercepter les requêtes d'upgrade WebSocket, pas seulement à
+// l'app Express qui gère le reste des routes normalement par-dessus.
+const server = http.createServer(app);
+initSocket(server);
+
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Comme à la Maison API → http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Comme à la Maison API → http://localhost:${PORT}`));

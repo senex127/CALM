@@ -7,7 +7,7 @@ import { buildBrandTheme } from '../../lib/theme';
 
 const inputClass = 'block w-full mt-1 px-3 py-2.5 rounded-lg min-h-11';
 const inputStyle = { border: '1px solid var(--border-strong)', background: 'var(--bg-primary)' };
-const DEFAULT_ACCENT = '#b5651d';
+const DEFAULT_ACCENT = '#0c1239'; // bleu marine du vrai site commealamaison-puteaux.fr
 
 export default function AdminSettingsPage() {
   const [form, setForm] = useState(null);
@@ -90,6 +90,7 @@ export default function AdminSettingsPage() {
               aria-label="Choisir la couleur du site"
             />
             <input
+              type="text" aria-label="Code couleur hexadécimal"
               value={form.accentColor} onChange={update('accentColor')}
               className="px-3 py-2.5 rounded-lg min-h-11 font-mono text-sm flex-1"
               style={inputStyle} maxLength={7}

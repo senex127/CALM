@@ -64,11 +64,11 @@ export default function AdminReservationsPage() {
       <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <h2 className="text-lg font-semibold">Réservations</h2>
         <div className="flex gap-2 flex-wrap">
-          <select value={offerFilter} onChange={(e) => setOfferFilter(e.target.value)} className={selectClass} style={selectStyle}>
+          <select aria-label="Filtrer par offre" value={offerFilter} onChange={(e) => setOfferFilter(e.target.value)} className={selectClass} style={selectStyle}>
             <option value="">Toutes les offres</option>
             {offers.map((o) => <option key={o.id} value={o.id}>{o.title}</option>)}
           </select>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={selectClass} style={selectStyle}>
+          <select aria-label="Filtrer par statut" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={selectClass} style={selectStyle}>
             <option value="">Tous les statuts</option>
             <option value="PENDING">En attente</option>
             <option value="CONFIRMED">Confirmées</option>
@@ -112,7 +112,7 @@ export default function AdminReservationsPage() {
                         {r.status === 'PENDING' && (
                           <>
                             <Button
-                              variant="primary" style={{ background: 'var(--status-confirmed)' }} className="px-3 text-xs"
+                              variant="primary" style={{ background: 'var(--success-solid)' }} className="px-3 text-xs"
                               loading={busy === `${r.id}:accept`} disabled={busy != null}
                               onClick={() => act(r.id, 'accept')}
                             >

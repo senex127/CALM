@@ -40,7 +40,7 @@ async function main() {
     address: ADDRESS,
     phone: '04 78 00 00 00',
     openingHours: 'Mar–Ven 16h–00h · Sam–Dim 14h–00h',
-    accentColor: '#b5651d',
+    accentColor: '#0c1239', // bleu marine du vrai site commealamaison-puteaux.fr
   } });
 
   console.log('[seed] Création des offres…');

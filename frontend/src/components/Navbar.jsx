@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Dice5, LogOut } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import Button, { buttonBaseClass } from './Button';
+import Button, { buttonBaseClass, primaryButtonStyle } from './Button';
 import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
@@ -34,7 +34,7 @@ export default function Navbar() {
           ) : (
             <>
               <Link to="/connexion" style={{ color: 'var(--text-secondary)' }}>Connexion</Link>
-              <Link to="/inscription" className={buttonBaseClass} style={{ background: 'var(--accent)', color: '#fff', borderRadius: 'var(--radius-md)' }}>
+              <Link to="/inscription" className={buttonBaseClass} style={primaryButtonStyle}>
                 Créer un compte
               </Link>
             </>
@@ -54,7 +54,7 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <Link to="/inscription" className={buttonBaseClass} style={{ background: 'var(--accent)', color: '#fff', borderRadius: 'var(--radius-md)' }}>
+            <Link to="/inscription" className={buttonBaseClass} style={primaryButtonStyle}>
               S’inscrire
             </Link>
           )}

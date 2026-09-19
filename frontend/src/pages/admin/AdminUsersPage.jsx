@@ -39,6 +39,7 @@ export default function AdminUsersPage() {
       <div className="relative max-w-sm mb-6">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
         <input
+          type="text" aria-label="Rechercher un utilisateur"
           placeholder="Rechercher un nom ou un email…" value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-9 pr-3 py-2.5 rounded-lg min-h-11"

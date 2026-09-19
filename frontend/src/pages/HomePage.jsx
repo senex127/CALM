@@ -1,14 +1,18 @@
 import { Link } from 'react-router-dom';
 import { Package, Trophy, ArrowRight } from 'lucide-react';
-import { buttonBaseClass } from '../components/Button';
-
-const STEPS = [
-  { title: 'Choisissez une offre', text: 'Un produit en édition limitée ou une place de tournoi, publiés au fil de la semaine.' },
-  { title: 'Réservez en 2 minutes', text: 'Un formulaire simple, une limite claire par personne, connecté avec votre compte ou Google.' },
-  { title: 'Passez au bar', text: 'Confirmation par email, retrait ou inscription sur place — pas de paiement en ligne à avancer.' },
-];
+import { buttonBaseClass, primaryButtonStyle } from '../components/Button';
+import OfferCard from '../components/OfferCard';
+import { SkeletonGrid } from '../components/Skeleton';
+import { useLiveOffers } from '../hooks/useLiveOffers';
 
 export default function HomePage() {
+  // Aperçu des prochaines offres plutôt qu'un bloc générique « Comment ça marche » — un bar
+  // montre ce qu'il a en rayon et à l'affiche, pas un schéma abstrait de son parcours de
+  // réservation (voir commealamaison-puteaux.fr, qui mène sa page d'accueil avec ses
+  // meilleures ventes et ses nouveautés, pas un explicatif du fonctionnement du site).
+  const { offers, loading } = useLiveOffers();
+  const upcoming = offers.slice(0, 4);
+
   return (
     <div>
       <section className="grid gap-10 lg:grid-cols-[1.3fr_1fr] lg:items-start pt-4 pb-14">
@@ -17,15 +21,15 @@ export default function HomePage() {
             Bar à jeux &amp; cartes à collectionner
           </p>
           <h1 className="text-4xl sm:text-5xl leading-[1.08] mb-5">
-            Votre place au tournoi,<br />
-            <span style={{ color: 'var(--accent-ink)' }}>réservée avant d’arriver.</span>
+            Boosters, pièces rares et tournois,<br />
+            <span style={{ color: 'var(--accent-ink)' }}>réservés avant d’arriver.</span>
           </h1>
           <p className="text-lg max-w-md mb-8" style={{ color: 'var(--text-secondary)' }}>
             Comme à la Maison met en ligne ses sorties de boosters, ses pièces rares et ses tournois
             de la semaine — vous réservez en ligne, vous passez au bar.
           </p>
           <div className="flex items-center gap-6 flex-wrap">
-            <Link to="/offres" className={buttonBaseClass} style={{ background: 'var(--accent)', color: '#fff', borderRadius: 'var(--radius-md)' }}>
+            <Link to="/offres" className={buttonBaseClass} style={primaryButtonStyle}>
               Voir les offres <ArrowRight size={16} />
             </Link>
             <Link to="/inscription" className="text-sm font-semibold inline-flex items-center gap-1.5 min-h-11">
@@ -58,20 +62,22 @@ export default function HomePage() {
       </section>
 
       <section className="pt-12" style={{ borderTop: '1px solid var(--border)' }}>
-        <h2 className="text-xs font-semibold uppercase mb-8" style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
-          Comment ça marche
-        </h2>
-        <div className="grid gap-8 sm:grid-cols-3">
-          {STEPS.map(({ title, text }, i) => (
-            <div key={title}>
-              <span className="block text-4xl mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--accent-ink)' }}>
-                {String(i + 1).padStart(2, '0')}
-              </span>
-              <h3 className="font-semibold text-sm mb-1.5">{title}</h3>
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{text}</p>
-            </div>
-          ))}
+        <div className="flex items-end justify-between mb-6 gap-3 flex-wrap">
+          <h2 className="text-xl font-bold">Nos prochaines offres</h2>
+          <Link to="/offres" className="text-sm font-semibold inline-flex items-center gap-1.5 min-h-11" style={{ color: 'var(--accent-ink)' }}>
+            Voir tout <ArrowRight size={14} />
+          </Link>
         </div>
+
+        {loading ? (
+          <SkeletonGrid />
+        ) : upcoming.length ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {upcoming.map((offer) => <OfferCard key={offer.id} offer={offer} />)}
+          </div>
+        ) : (
+          <p style={{ color: 'var(--text-secondary)' }}>Aucune offre publiée pour l’instant — revenez bientôt.</p>
+        )}
       </section>
     </div>
   );

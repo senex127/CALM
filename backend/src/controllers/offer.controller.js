@@ -1,4 +1,14 @@
 const prisma = require('../lib/prisma');
+const { getIO } = require('../lib/socket');
+
+// Diffuse une offre à tous les visiteurs connectés (page Offres) — jamais le contenu d'un
+// brouillon : seules les offres publiques (déjà publiées, ou qui le deviennent/cessent de
+// l'être) sont concernées. Le frontend décide d'ajouter/mettre à jour ou retirer l'offre de
+// sa liste selon `offer.status` (voir OffersPage.jsx).
+function broadcastOfferChanged(offer) {
+  const io = getIO();
+  if (io) io.emit('offer:changed', offer);
+}
 
 // Catalogue public : uniquement les offres publiées (utilisé par la page Offres). Filtrable
 // par type via ?type=PRODUCT|TOURNAMENT.
@@ -60,6 +70,10 @@ exports.create = async (req, res, next) => {
 exports.update = async (req, res, next) => {
   try {
     const offer = await prisma.offer.update({ where: { id: req.params.id }, data: req.body });
+    // Édition de contenu (prix, description, date...) : ce endpoint ne touche jamais `status`
+    // (absent de updateOfferSchema), donc si l'offre est déjà publique, ses nouvelles infos
+    // doivent l'être aussi ; sinon (encore DRAFT) rien à diffuser.
+    if (offer.status === 'PUBLISHED') broadcastOfferChanged(offer);
     res.json({ offer });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ error: 'Offre introuvable' });
@@ -69,7 +83,11 @@ exports.update = async (req, res, next) => {
 
 exports.updateStatus = async (req, res, next) => {
   try {
+    const before = await prisma.offer.findUnique({ where: { id: req.params.id }, select: { status: true } });
     const offer = await prisma.offer.update({ where: { id: req.params.id }, data: { status: req.body.status } });
+    // Diffuse à l'entrée ET à la sortie de la visibilité publique : le client doit aussi
+    // savoir retirer une offre de sa liste quand elle passe de PUBLISHED à CLOSED/ARCHIVED.
+    if (offer.status === 'PUBLISHED' || before?.status === 'PUBLISHED') broadcastOfferChanged(offer);
     res.json({ offer });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ error: 'Offre introuvable' });

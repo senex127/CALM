@@ -184,9 +184,41 @@ Deux couches, toutes deux optionnelles et sans dépendance bloquante :
    **à remplacer par de vraies clés avant la mise en prod**, sans quoi la protection est un
    théâtre : elle laisserait passer n'importe quoi.
 
-Ces deux protections portent sur l'inscription (l'action la plus exposée à un bot, avant même
-authentification). La connexion et les réservations restent protégées par le rate limiting
-existant (`authLimiter`, `reservationLimiter`).
+Turnstile protège aussi la création de réservation (`POST /offers/:id/reservations`), pas
+seulement l'inscription — les précommandes/réservations sont la cible la plus probable d'un
+bot (accaparer un stock ou des places limitées avant les vrais clients). Le widget apparaît
+dans le formulaire de réservation (`OfferPage.jsx`) exactement comme à l'inscription. La
+connexion reste protégée par le rate limiting existant (`authLimiter`).
+
+## Disponibilité en direct (WebSocket)
+
+Les places restantes, le passage en liste d'attente et la publication/fermeture d'une offre
+se répercutent chez tous les visiteurs qui ont la page ouverte, sans qu'ils aient à la
+recharger — via Socket.IO plutôt qu'une lib WebSocket "pure" (`ws`) : le Node.js Selector
+cPanel d'O2Switch tourne derrière Passenger/Apache, dont le support de l'upgrade WebSocket
+dépend de la configuration exacte de l'hébergement (voir *Déploiement* plus bas) — pas garanti
+sur un mutualisé. Socket.IO retombe automatiquement en polling HTTP long si l'upgrade échoue,
+là où une connexion WebSocket pure casserait net.
+
+- `backend/src/lib/socket.js` — serveur Socket.IO attaché au serveur HTTP (`app.js`), CORS
+  aligné sur `FRONTEND_URL` comme le reste de l'API. Un client s'abonne à une offre précise
+  (`offer:subscribe`, room `offer:<id>`) pour recevoir ses mises à jour de disponibilité —
+  jamais un broadcast global de toutes les réservations du site.
+- `backend/src/lib/offerAvailability.js` — recalcule places prises/restantes/liste d'attente
+  à la demande (mêmes règles que la cascade de réservation, en lecture seule) et diffuse le
+  résultat (`offer:availability`) à la room de l'offre concernée, à chaque réservation créée,
+  acceptée, refusée, annulée ou marquée non-présentée.
+- `offer.controller.js` diffuse `offer:changed` à **tous** les clients connectés (pas une room
+  précise, la page Offres n'est pas ciblée par offre) quand une offre entre ou sort de la
+  visibilité publique, ou que son contenu change alors qu'elle est déjà publiée — jamais le
+  contenu d'un brouillon, qui ne doit fuiter à personne avant publication.
+- Frontend : `lib/socket.js` (connexion partagée), branché dans `OfferPage.jsx` (places
+  restantes, bouton "Réserver" → "Rejoindre la liste d'attente" une fois complet, quantité
+  max ajustée en direct) et `OffersPage.jsx` (une offre publiée/fermée apparaît ou disparaît de
+  la liste sans recharger).
+
+Aucune donnée sensible ne transite par ces évènements — uniquement des informations déjà
+publiques (disponibilité, contenu d'une offre publiée).
 
 ## Déploiement (O2Switch)
 

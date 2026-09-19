@@ -1,34 +1,58 @@
 @import "tailwindcss";
 
-/* ── Palette — bois chaud et ambre d'un bar à jeux, réglable ensuite depuis
-   Admin → Paramètres (GlobalTheme recolore --accent* à partir de Settings.accentColor,
-   ces valeurs ne sont que le repli avant que ce fetch ne réponde). ── */
+/* ── Palette — bleu marine, alignée sur le vrai site commealamaison-puteaux.fr (#0c1239),
+   réglable ensuite depuis Admin → Paramètres (GlobalTheme recolore --accent* à partir de
+   Settings.accentColor — voir lib/theme.js#buildBrandTheme, seed.js pour la valeur par
+   défaut — ces valeurs-ci ne sont que le repli avant que ce fetch ne réponde). ── */
 :root {
-  --bg-primary:   #f1f3ef;
+  /* Blanc plutôt qu'un blanc cassé légèrement teinté : le vrai site reste en blanc pur du
+     fond de page jusqu'aux cartes, la structure vient des bordures/ombres plutôt que d'un
+     dégradé de gris. --bg-tertiary (chips, skeletons, désactivé) reste un gris clair distinct. */
+  --bg-primary:   #ffffff;
   --bg-secondary: #ffffff;
   --bg-tertiary:  #e9ece7;
 
   --border:        #d8ded9;
   --border-strong: #c2cac4;
 
-  --accent:        #b5651d;
-  --accent-hover:  #96521a;
-  --accent-ink:    #7a4013;
-  --accent-subtle: #f7ead9;
-  --accent-gradient: linear-gradient(135deg, #c17a2e 0%, #8a4e16 100%);
+  --accent:        #0c1239;
+  --accent-hover:  #1c2b87;
+  --accent-ink:    #142071;
+  --accent-subtle: #e7eaf8;
+  /* Dégradé du vrai site (bouton "Réserver"/CTA) : bleu vif → marine, à l'horizontale plutôt
+     que notre diagonale dérivée précédente — voir primaryButtonStyle dans Button.jsx. Bleu
+     vif assombri par rapport à l'original (#1189fb → #0473dd, même teinte) : le vif d'origine
+     ne tenait que 3.50:1 en texte blanc dessus, y compris sur le site de référence — voir
+     lib/theme.js pour le même correctif appliqué à la version recalculée à l'exécution. */
+  --accent-gradient: linear-gradient(90deg, #0473dd 0%, #0c1239 100%);
 
   --text-primary:   #182231;
   --text-secondary: #4c5a6b;
-  --text-muted:     #8291a0;
+  /* #5b6a79 (au lieu de #8291a0) : l'ancienne valeur ne passait 4.5:1 sur aucun de ses fonds
+     réels (3.23:1 sur blanc, 2.71:1 sur --bg-tertiary) — recalculé pour passer sur le fond
+     le plus sombre où le token est utilisé (voir StatusBadge, en-tête de tableau admin). */
+  --text-muted:     #5b6a79;
 
-  --status-pending:      #8a6d1f;
+  /* #836618 (au lieu de #8a6d1f) et #1c7769 (au lieu de #1f7a6c) : même ajustement, sur leur
+     pastille respective. --status-refused (4.74:1) et --status-waitlist (4.61:1) passaient déjà. */
+  --status-pending:      #836618;
   --status-pending-bg:   #f5edd4;
-  --status-confirmed:    #1f7a6c;
+  --status-confirmed:    #1c7769;
   --status-confirmed-bg: #e4f1ee;
   --status-refused:      #b3401f;
   --status-refused-bg:   #f9e6dc;
   --status-waitlist:     #5c6b7a;
   --status-waitlist-bg:  #e9ecee;
+
+  /* Rouge et vert fixes (même valeur en clair et en sombre — jamais redéfinis dans le bloc
+     dark mode ci-dessous) pour les rares endroits où un statut sert de fond plein sous du
+     texte blanc (badge de notifications non lues, bouton "Accepter") plutôt que de simple
+     encre sur un fond teinté : --status-refused/--status-confirmed sont pensés pour ce
+     deuxième usage, et leurs variantes sombres (volontairement plus claires, pour rester
+     lisibles en encre sur fond sombre) ne tiennent plus 4.5:1 une fois utilisées en fond plein
+     avec du blanc dessus (2.23:1 et 2.05:1 mesurés). */
+  --danger-solid:  #b3401f;
+  --success-solid: #1c7769;
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -40,7 +64,7 @@
 
   --header-bg: rgba(255, 255, 255, 0.86);
 
-  --font-display: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Electrolize', 'Segoe UI', system-ui, sans-serif;
   --font-body: 'Manrope', 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
 }
@@ -54,21 +78,27 @@
     --border:        #2a3540;
     --border-strong: #384552;
 
-    --accent:        #e0a15c;
-    --accent-hover:  #e8b374;
-    --accent-ink:    #f0c896;
-    --accent-subtle: rgba(224, 161, 92, 0.16);
-    --accent-gradient: linear-gradient(135deg, #6b4419 0%, #40280f 100%);
+    --accent:        #5868d5;
+    --accent-hover:  #7c89de;
+    --accent-ink:    #b3b9e6;
+    --accent-subtle: hsla(232, 55%, 55%, 0.16);
+    --accent-gradient: linear-gradient(135deg, #17236e 0%, #0d143f 100%);
 
     --text-primary:   #e8ecea;
     --text-secondary: #a9b4be;
-    --text-muted:     #6e7a86;
+    /* #87939f (au lieu de #6e7a86) : même correctif qu'en clair, recalculé pour le sens
+       inverse (éclaircir un texte clair sur fond sombre plutôt que l'assombrir). */
+    --text-muted:     #87939f;
 
     --status-pending:      #d1ae55;
     --status-pending-bg:   rgba(209, 174, 85, 0.14);
     --status-confirmed:    #5cc7b0;
     --status-confirmed-bg: rgba(92, 199, 176, 0.14);
-    --status-refused:      #e0724c;
+    /* #e97b55 (au lieu de #e0724c) : composité avec son propre fond translucide par-dessus
+       une carte (voir --status-refused-bg juste dessous), le résultat réel ne tenait que
+       4.24:1 — mesuré en compositant réellement les deux plutôt qu'en comparant le texte à
+       la carte seule, qui donnait un chiffre trop optimiste. */
+    --status-refused:      #e97b55;
     --status-refused-bg:   rgba(224, 114, 76, 0.14);
     --status-waitlist:     #93a1ae;
     --status-waitlist-bg:  rgba(147, 161, 174, 0.14);
@@ -90,14 +120,26 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Montserrat ne sert que pour les grands titres de page — les intitulés de carte
-   (offre, boutique...) restent en Manrope, la casse et la taille varient trop pour un display. */
+/* Electrolize ne sert que pour les grands titres de page et les boutons (voir .btn-face
+   dans Button.jsx) — les intitulés de carte (offre...) restent en Manrope, la casse et la
+   taille varient trop pour un display aussi anguleux. */
 h1 { font-family: var(--font-display); text-wrap: balance; }
 h2, h3, h4 { text-wrap: balance; }
 
 /* Supprime le délai de 300ms avant qu'un tap déclenche son action (mobile) */
 a, button, input, select, textarea {
   touch-action: manipulation;
+}
+
+/* Le preflight de Tailwind (depuis la v3.4) remet `cursor: default` sur <button> pour coller
+   au comportement natif du navigateur — mais un bouton reste cliquable, la souris doit le dire.
+   `:disabled` retombe sur `not-allowed`, plus juste qu'un pointeur sur une action indisponible. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
 }
 
 :focus-visible {
@@ -112,6 +154,15 @@ a, button, input, select, textarea {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Style des CTA — inspiré des boutons du vrai site (police display, majuscules, lettres
+   espacées) : Button.jsx et tout <Link className={buttonBaseClass}> (Navbar, HomePage...)
+   l'utilisent, pour que chaque bouton du site — pas seulement <Button> — suive le même style. */
+.btn-face {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 /* ── Cartes ── */

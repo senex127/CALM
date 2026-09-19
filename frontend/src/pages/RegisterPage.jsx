@@ -48,15 +48,21 @@ export default function RegisterPage() {
         <div className="my-4 text-sm text-center" style={{ color: 'var(--text-muted)' }}>ou</div>
 
         <form onSubmit={submit} className="flex flex-col gap-3">
+          <label className="sr-only" htmlFor="register-name">Nom</label>
           <input
+            id="register-name" type="text"
             required placeholder="Nom" autoComplete="name" value={form.name} onChange={update('name')}
             className={inputClass} style={inputStyle}
           />
+          <label className="sr-only" htmlFor="register-email">Email</label>
           <input
+            id="register-email"
             type="email" required placeholder="Email" autoComplete="email" value={form.email} onChange={update('email')}
             className={inputClass} style={inputStyle}
           />
+          <label className="sr-only" htmlFor="register-password">Mot de passe</label>
           <input
+            id="register-password"
             type="password" required minLength={8} placeholder="Mot de passe (8 caractères min)" autoComplete="new-password"
             value={form.password} onChange={update('password')}
             className={inputClass} style={inputStyle}
@@ -65,10 +71,12 @@ export default function RegisterPage() {
           {/* Honeypot anti-bot : invisible et inatteignable au clavier pour un humain, mais
               présent dans le DOM — un bot qui remplit tous les champs s'y fait piéger
               (voir auth.controller.register côté backend). Ne pas mettre display:none, que
-              certains bots savent détecter et ignorer. */}
+              certains bots savent détecter et ignorer. aria-label pour les analyseurs
+              statiques d'accessibilité : aria-hidden retire déjà le champ de l'arbre pour les
+              vrais lecteurs d'écran, ce label n'est donc jamais annoncé à un humain. */}
           <input
             type="text" name="website" value={form.website} onChange={update('website')}
-            tabIndex={-1} autoComplete="off" aria-hidden="true"
+            tabIndex={-1} autoComplete="off" aria-hidden="true" aria-label="Ne pas remplir"
             style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
           />
 

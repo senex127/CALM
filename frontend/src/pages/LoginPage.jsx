@@ -44,12 +44,16 @@ export default function LoginPage() {
         <div className="my-4 text-sm text-center" style={{ color: 'var(--text-muted)' }}>ou</div>
 
         <form onSubmit={submit} className="flex flex-col gap-3">
+          <label className="sr-only" htmlFor="login-email">Email</label>
           <input
+            id="login-email"
             type="email" required placeholder="Email" autoComplete="email" value={email}
             onChange={(e) => setEmail(e.target.value)}
             className={inputClass} style={inputStyle}
           />
+          <label className="sr-only" htmlFor="login-password">Mot de passe</label>
           <input
+            id="login-password"
             type="password" required placeholder="Mot de passe" autoComplete="current-password" value={password}
             onChange={(e) => setPassword(e.target.value)}
             className={inputClass} style={inputStyle}

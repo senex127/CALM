@@ -2,6 +2,7 @@ const prisma = require('../lib/prisma');
 const { sendMail } = require('../lib/mailer');
 const { runQueued } = require('../lib/offerQueue');
 const { notify, notifyAdmins } = require('./notification.service');
+const { broadcastAvailability } = require('../lib/offerAvailability');
 
 const ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'WAITLISTED'];
 const HOLDS_CAPACITY = ['PENDING', 'CONFIRMED'];
@@ -106,6 +107,9 @@ async function createReservation({ offerId, userId, quantity, comment }) {
         `${reservation.user.name} demande « ${reservation.offer.title} » — à valider.`
       ).catch(() => {});
     }
+    // Diffuse en direct aux autres clients qui regardent cette offre : places restantes,
+    // liste d'attente, complet — sans qu'ils aient à recharger la page (voir OfferPage.jsx).
+    await broadcastAvailability(reservation.offerId);
     return reservation;
   }));
 }
@@ -137,7 +141,10 @@ async function promoteWaitlist(offerId) {
     // Note MVP : pas encore de délai de confirmation avec expiration automatique
     // (cf. cahier technique section 4) — à ajouter via un cron dédié en V2.
   }).then(async (updated) => {
-    if (updated) await notifyStatus(updated, updated.offer, updated.user).catch(() => {});
+    if (updated) {
+      await notifyStatus(updated, updated.offer, updated.user).catch(() => {});
+      await broadcastAvailability(offerId);
+    }
     return updated;
   });
 }
@@ -160,6 +167,7 @@ async function decideReservation(reservationId, actorId, decision) {
     include: { offer: true, user: true },
   });
   await notifyStatus(updated, updated.offer, updated.user).catch(() => {});
+  await broadcastAvailability(reservation.offerId);
 
   if (decision === 'REFUSED') await promoteWaitlist(reservation.offerId);
   return updated;
@@ -181,6 +189,7 @@ async function cancelReservation(reservationId, userId) {
     include: { offer: true, user: true },
   });
   await notifyStatus(updated, updated.offer, updated.user).catch(() => {});
+  await broadcastAvailability(reservation.offerId);
 
   if (wasHoldingCapacity) await promoteWaitlist(reservation.offerId);
   return updated;
@@ -195,10 +204,15 @@ async function markNoShow(reservationId, actorId) {
     throw err;
   }
 
-  return prisma.reservation.update({
+  const updated = await prisma.reservation.update({
     where: { id: reservationId },
     data: { status: 'NO_SHOW', processedAt: new Date(), processedBy: actorId },
   });
+  // NO_SHOW sort du calcul de capacité (voir HOLDS_CAPACITY) : la place se libère réellement,
+  // même si personne n'est auto-promu depuis la liste d'attente pour l'instant (limitation
+  // déjà documentée sur promoteWaitlist — pas quelque chose que ce changement doit corriger).
+  await broadcastAvailability(reservation.offerId);
+  return updated;
 }
 
 module.exports = { createReservation, decideReservation, cancelReservation, markNoShow, promoteWaitlist };

@@ -10,7 +10,13 @@ export default function GoogleSignInButton() {
   const ref = useRef(null);
   const setSession = useAuthStore((s) => s.setSession);
   const navigate = useNavigate();
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const rawClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  // Un id encore égal au placeholder de .env.example n'est pas "configuré" : Google rejette ce
+  // client_id, et tente quand même d'initialiser le widget produit un rendu cassé (iframe et id
+  // dupliqués, visible en audit a11y) plutôt qu'une simple absence de bouton — pas mieux pour
+  // un vrai visiteur. Même dégradation propre que Turnstile/Mailjet ailleurs dans ce projet :
+  // tant que ce n'est pas configuré, on n'affiche rien plutôt qu'un widget à moitié fonctionnel.
+  const clientId = rawClientId && !rawClientId.startsWith('xxxxxxxxxx') ? rawClientId : null;
 
   useEffect(() => {
     if (!clientId) return;
