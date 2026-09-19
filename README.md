@@ -122,6 +122,14 @@ boutons, badges — pas seulement une portion, contrairement à Reservator où c
 n'affecte que sa propre vitrine. Voir `frontend/src/lib/theme.js` (dérive 5 tokens depuis une
 seule teinte) et `components/GlobalTheme.jsx` (les injecte au chargement).
 
+Couleur et typographie par défaut alignées sur le vrai site
+[commealamaison-puteaux.fr](https://www.commealamaison-puteaux.fr/) : bleu marine `#0c1239`
+(voir `seed.js` / `AdminSettingsPage.jsx`) et police Electrolize pour les titres et boutons
+(`index.html`, `--font-display`). `buildBrandTheme()` garantit un contraste texte blanc ≥4.5:1
+(WCAG2AA) quelle que soit la couleur choisie par l'admin, dégradé de bouton compris — testé à
+la fois sur la couleur par défaut et sur des couleurs arbitraires (voir les commentaires dans
+`theme.js`).
+
 ## Sécurité
 
 - **En-têtes** : Helmet avec une vraie CSP (pas désactivée), `trust proxy` activé en prod
@@ -139,6 +147,23 @@ seule teinte) et `components/GlobalTheme.jsx` (les injecte au chargement).
 - **CSRF** : pas de protection dédiée nécessaire — l'API est en JWT Bearer (Authorization
   header), jamais en cookie de session, donc pas de recours ambiant qu'un site tiers pourrait
   déclencher malgré lui.
+
+## Accessibilité
+
+`npm run test:a11y` (dans `frontend/`) audite toutes les routes de l'app — publiques,
+client connecté, admin — avec axe-core et HTML CodeSniffer (WCAG2AA), en clair **et** en
+sombre (`frontend/scripts/a11y-audit.cjs`). Deux écarts par rapport à un `pa11y-ci` standard,
+documentés dans le script :
+
+1. Connexion via l'API une seule fois par rôle (client/admin) puis session injectée dans
+   `localStorage`, plutôt que de repasser par le formulaire de connexion à chaque page
+   protégée — sinon largement assez de tentatives coup sur coup pour déclencher `authLimiter`.
+2. `levelCapWhenNeedsReview: 'notice'` — axe ne sait pas résoudre un fond en dégradé CSS
+   (nos boutons) en une seule couleur solide et classe ça en "à vérifier" plutôt qu'en
+   violation confirmée ; le contraste réel a été vérifié à la main avant ce réglage.
+
+Toutes les pages passent à 0 violation sérieuse au moment d'écrire ceci. Sur un nouveau
+changement d'UI, relancer l'audit et corriger avant de considérer le travail terminé.
 
 ## File d'attente sur les réservations
 
@@ -251,18 +276,25 @@ backend/src/
   middleware/                 # auth (JWT), rôle, rate limiting, validation zod, upload (multer)
   schemas/                     # schémas zod par ressource
   lib/                          # prisma, mailer (Mailjet), googleAuth, turnstile, offerQueue
+    socket.js                    # serveur Socket.IO, room par offre (voir plus haut)
+    offerAvailability.js         # recalcule et diffuse la disponibilité d'une offre
 
-frontend/src/
-  App.jsx                     # un seul arbre de routes (pas de multi-tenant)
-  lib/theme.js                 # dérive la palette du site depuis Settings.accentColor
-  components/
-    GlobalTheme.jsx            # applique cette palette à tout le site au chargement
-    ImageUploadField.jsx       # upload logo/bannière/visuel d'offre (POST /api/uploads)
-    TurnstileWidget.jsx        # anti-bot à l'inscription (voir plus haut)
-  pages/                       # espace public + client (accueil, offres, à propos...)
-  pages/admin/                 # back-office : offres, réservations, utilisateurs, paramètres
-  store/authStore.js           # session (zustand + persist)
-  api/client.js                 # axios + injection du token
+frontend/
+  scripts/a11y-audit.cjs         # npm run test:a11y (voir "Accessibilité" plus haut)
+  src/
+    App.jsx                      # un seul arbre de routes (pas de multi-tenant)
+    lib/theme.js                 # dérive la palette du site depuis Settings.accentColor
+    lib/socket.js                 # connexion Socket.IO partagée par toute l'app
+    hooks/useLiveOffers.js        # offres publiées + mises à jour en direct (OffersPage, HomePage)
+    components/
+      GlobalTheme.jsx            # applique cette palette à tout le site au chargement
+      ImageUploadField.jsx       # upload logo/bannière/visuel d'offre (POST /api/uploads)
+      TurnstileWidget.jsx        # anti-bot à l'inscription/réservation (voir plus haut)
+      OfferPreview.jsx           # aperçu client en direct dans le formulaire d'offre admin
+    pages/                       # espace public + client (accueil, offres, à propos...)
+    pages/admin/                 # back-office : offres, réservations, utilisateurs, paramètres
+    store/authStore.js           # session (zustand + persist)
+    api/client.js                 # axios + injection du token
 ```
 
 ## Ce qui reste à faire après ce squelette
