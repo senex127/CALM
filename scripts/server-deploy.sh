@@ -104,7 +104,12 @@ echo "=== prisma generate ==="
 if [ "$FRONTEND_CHANGED" = "1" ]; then
   echo "=== Build frontend ==="
   cd "$FRONTEND"
-  npm ci --silent
+  # --include=dev : NODE_ENV=production (actif dans ce shell, via le venv Node source plus
+  # haut) fait sauter les devDependencies par défaut — et vite en fait partie. Contrairement
+  # au backend (où sauter les devDependencies est le comportement voulu, nodemon ne sert qu'en
+  # dev), on construit le frontend directement sur le serveur : vite doit être installé pour
+  # que `npm run build` puisse tourner.
+  npm ci --include=dev --silent
   npm run build
   mkdir -p "$PUBLIC"
   rm -rf "${PUBLIC:?}"/*
