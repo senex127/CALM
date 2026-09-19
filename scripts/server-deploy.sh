@@ -21,6 +21,17 @@ PUBLIC="$BACKEND/public"   # servi par Passenger comme racine statique
 LOG="$BACKEND/tmp/deploy-cron.log"
 UAPI="/usr/local/cpanel/bin/uapi"
 CPANEL_APP_ROOT="public_html/comme-a-la-maison/backend"
+NODE_MAJOR="20"   # doit rester synchro avec la version choisie dans Setup Node.js App
+
+# Le cron ne source pas le profil interactif (celui qui active l'environnement Node de
+# Setup Node.js App, visible dans le prompt SSH en `[app_root (20)]`) — sans ça, `npm`/`node`
+# peuvent résoudre vers une tout autre version côté cron que celle configurée pour l'app, voire
+# être absents du PATH. On l'active explicitement ici si le script d'activation existe.
+NODE_VENV="$HOME/nodevenv/$CPANEL_APP_ROOT/$NODE_MAJOR"
+if [ -f "$NODE_VENV/bin/activate" ]; then
+  # shellcheck disable=SC1090
+  source "$NODE_VENV/bin/activate"
+fi
 
 mkdir -p "$(dirname "$LOG")"
 
@@ -65,8 +76,18 @@ echo "=== git reset --hard OK ==="
 cd "$BACKEND"
 
 if [ "$BACKEND_PKG" = "1" ]; then
-  echo "=== npm install backend (via uapi CloudLinux) ==="
-  "$UAPI" --output=jsonpretty NodeJs install_npm_packages app_root="$CPANEL_APP_ROOT"
+  echo "=== npm install backend ==="
+  # uapi NodeJs install_npm_packages est la méthode recommandée sur un compte CloudLinux (évite
+  # de casser le lien symbolique géré par le système vers node_modules) — mais indisponible sur
+  # certains comptes O2Switch (binaire /usr/local/cpanel/cpanel absent selon la configuration).
+  # On retombe alors sur un npm install classique, sûr tant que le venv Node du Setup Node.js
+  # App est actif (c'est le cas ici : le script tourne depuis ce même app_root).
+  if "$UAPI" --output=jsonpretty NodeJs install_npm_packages app_root="$CPANEL_APP_ROOT" 2>/dev/null; then
+    echo "(installé via uapi)"
+  else
+    echo "uapi indisponible sur ce compte — npm install classique"
+    npm install
+  fi
 fi
 
 # ── Prisma ──
