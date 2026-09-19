@@ -33,7 +33,10 @@ export default function GoogleSignInButton() {
 
     const init = () => {
       window.google?.accounts.id.initialize({ client_id: clientId, callback: handleCredential });
-      if (ref.current) window.google?.accounts.id.renderButton(ref.current, { theme: 'outline', size: 'large', width: '100%' });
+      // Google veut un nombre de pixels, pas "100%" (ignoré avec un avertissement sinon) —
+      // largeur réelle du conteneur au moment du rendu, pour occuper toute la carte comme voulu.
+      const width = ref.current?.offsetWidth || 300;
+      if (ref.current) window.google?.accounts.id.renderButton(ref.current, { theme: 'outline', size: 'large', width });
     };
 
     if (window.google) {

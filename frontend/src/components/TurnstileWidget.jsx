@@ -8,11 +8,12 @@ export default function TurnstileWidget({ onVerify }) {
   const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
   useEffect(() => {
-    if (!siteKey) return;
+    if (!siteKey) return undefined;
 
+    let widgetId;
     const render = () => {
       if (ref.current && window.turnstile) {
-        window.turnstile.render(ref.current, { sitekey: siteKey, callback: onVerify });
+        widgetId = window.turnstile.render(ref.current, { sitekey: siteKey, callback: onVerify });
       }
     };
 
@@ -26,6 +27,13 @@ export default function TurnstileWidget({ onVerify }) {
       script.onload = render;
       document.body.appendChild(script);
     }
+
+    // Sans ce nettoyage, Turnstile garde en mémoire un widget dont l'élément a disparu (page
+    // quittée en navigation React, pas en rechargement complet) — bénin, mais bruyant en
+    // console ("Cannot find Widget ... consider using turnstile.remove()").
+    return () => {
+      if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
+    };
   }, [siteKey, onVerify]);
 
   if (!siteKey) return null;

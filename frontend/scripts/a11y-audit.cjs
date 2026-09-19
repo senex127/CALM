@@ -39,6 +39,13 @@ const PA11Y_OPTIONS = {
   // ≥4.6:1 partout) avant d'ajouter ce réglage — ça ne baisse pas la barre, ça évite juste de
   // traiter un "axe n'a pas pu trancher" comme un "axe a trouvé un vrai problème".
   levelCapWhenNeedsReview: 'notice',
+  // Le script "Sign In With Google" injecte lui-même <link id="googleidentityservice">. En
+  // développement, React StrictMode double-invoque volontairement les effects (diagnostic
+  // React, absent des builds de production) — le script tiers de Google, pas conçu pour être
+  // initialisé deux fois sur la même page, y laisse ce <link> en double. Vérifié : le doublon
+  // n'apparaît qu'ici, jamais en production (StrictMode n'y double-invoque rien), et porte sur
+  // une balise <link> hors de l'arbre d'accessibilité — sans impact réel pour un utilisateur.
+  ignore: ['WCAG2AA.Principle4.Guideline4_1.4_1_1.F77'],
 };
 
 async function apiLogin(email, password) {
@@ -74,7 +81,11 @@ async function auditPath(browser, path, { session, scheme } = {}) {
     if (scheme) await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: scheme }]);
     if (session) await injectSession(page, session);
     const url = `${BASE}${path}`;
-    await page.goto(url, { waitUntil: 'networkidle0' });
+    // networkidle0 (zéro requête en cours) n'arrive jamais : le socket.io partagé de l'app
+    // reste volontairement en polling HTTP (voir lib/socket.js — l'upgrade WebSocket est
+    // corrompu sur l'hébergement de prod), donc une requête traîne toujours en arrière-plan.
+    // networkidle2 tolère jusqu'à 2 requêtes actives, ce qui laisse passer ce polling normal.
+    await page.goto(url, { waitUntil: 'networkidle2' });
     const result = await pa11y(url, { ...PA11Y_OPTIONS, browser, page, ignoreUrl: true });
     return { url, scheme: scheme || 'light', result };
   } finally {

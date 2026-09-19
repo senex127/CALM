@@ -62,7 +62,8 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       // 'unsafe-inline' sur style-src : GlobalTheme injecte la couleur de marque via une
       // balise <style> au chargement — pas de nonce simple à brancher sur du contenu statique.
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      // accounts.google.com : le widget Sign In With Google charge sa propre feuille de style.
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://accounts.google.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       scriptSrc: ["'self'", 'https://accounts.google.com', 'https://challenges.cloudflare.com'],
       frameSrc: ['https://accounts.google.com', 'https://challenges.cloudflare.com'],
